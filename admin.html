@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#050510">
+  <title>NEXUS ID — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    :root{
+      --primary:#00f0ff;--secondary:#7b2ff7;--accent:#ff006e;
+      --darker:#050510;--dark:#080820;--green:#00ff88;
+      --amber:#ffcc00;--purple:#b380ff;
+      --border:rgba(123,47,247,0.15);
+    }
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--darker);}
+    body{font-family:'Rajdhani',sans-serif;color:#fff;}
+
+    /* ── LOADING SCREEN ── */
+    #loadingScreen{
+      position:fixed;inset:0;z-index:9999;background:var(--darker);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:opacity 0.6s ease,transform 0.6s ease;
+    }
+    #loadingScreen.hide{opacity:0;transform:scale(1.03);pointer-events:none;}
+    .ls-bg{position:absolute;inset:0;}
+    .ls-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,0,110,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,0,110,0.04) 1px,transparent 1px);background-size:50px 50px;}
+    .ls-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(255,0,110,0.15) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);animation:lsPulse 3s ease-in-out infinite;}
+    @keyframes lsPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.7;}50%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}}
+    .ls-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:0;}
+    .ls-hex{width:90px;height:90px;position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:24px;}
+    .ls-hex-ring{position:absolute;inset:0;border-radius:20px;border:2px solid rgba(255,0,110,0.5);animation:spin 8s linear infinite;}
+    .ls-hex-ring2{position:absolute;inset:8px;border-radius:14px;border:1px solid rgba(123,47,247,0.3);animation:spin 5s linear infinite reverse;}
+    @keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    .ls-hex-inner{width:54px;height:54px;border-radius:12px;background:rgba(255,0,110,0.1);border:1px solid rgba(255,0,110,0.3);display:flex;align-items:center;justify-content:center;}
+    .ls-hex-inner svg{width:28px;height:28px;fill:#ff006e;filter:drop-shadow(0 0 8px rgba(255,0,110,0.7));}
+    .ls-title{font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:900;letter-spacing:6px;color:#fff;margin-bottom:4px;}
+    .ls-title span{color:#ff006e;}
+    .ls-subtitle{font-family:'Exo 2',sans-serif;font-size:0.58rem;color:rgba(255,255,255,0.22);letter-spacing:5px;text-transform:uppercase;margin-bottom:40px;}
+    .ls-progress-wrap{width:200px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:14px;}
+    .ls-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#ff006e,#7b2ff7);border-radius:2px;transition:width .3s ease;box-shadow:0 0 10px rgba(255,0,110,0.5);}
+    .ls-status{font-family:'Exo 2',sans-serif;font-size:0.58rem;color:rgba(255,255,255,0.2);letter-spacing:3px;text-transform:uppercase;min-height:16px;}
+    .ls-corner{position:absolute;width:22px;height:22px;}
+    .ls-corner.tl{top:20px;left:20px;border-top:2px solid rgba(255,0,110,0.4);border-left:2px solid rgba(255,0,110,0.4);}
+    .ls-corner.tr{top:20px;right:20px;border-top:2px solid rgba(123,47,247,0.3);border-right:2px solid rgba(123,47,247,0.3);}
+    .ls-corner.bl{bottom:20px;left:20px;border-bottom:2px solid rgba(123,47,247,0.3);border-left:2px solid rgba(123,47,247,0.3);}
+    .ls-corner.br{bottom:20px;right:20px;border-bottom:2px solid rgba(255,0,110,0.4);border-right:2px solid rgba(255,0,110,0.4);}
+
+    /* ── APP SHELL ── */
+    #app{position:fixed;inset:0;overflow:hidden;opacity:0;transition:opacity .5s ease;}
+    #app.visible{opacity:1;}
+    .bg{position:absolute;inset:0;z-index:0;}
+    .bg-grad{position:absolute;inset:0;background:radial-gradient(ellipse at 10% 50%,rgba(255,0,110,0.08) 0%,transparent 55%),radial-gradient(ellipse at 90% 20%,rgba(123,47,247,0.06) 0%,transparent 55%);}
+    .bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,0,110,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,0,110,0.02) 1px,transparent 1px);background-size:50px 50px;}
+
+    /* ── LOGIN PAGE ── */
+    #loginPage{
+      position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+      padding:20px;flex-direction:column;
+    }
+    .login-wrap{width:100%;max-width:400px;}
+    .login-logo{text-align:center;margin-bottom:28px;}
+    .login-icon-box{
+      width:68px;height:68px;border-radius:18px;
+      background:rgba(255,0,110,0.1);border:1px solid rgba(255,0,110,0.25);
+      display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+      position:relative;overflow:hidden;
+    }
+    .login-icon-box::after{content:'';position:absolute;inset:-50%;background:conic-gradient(from 0deg,transparent,rgba(255,0,110,0.4),transparent);animation:spin 4s linear infinite;opacity:.2;}
+    .login-icon-box svg{width:32px;height:32px;fill:#ff006e;position:relative;z-index:2;}
+    .login-title{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;letter-spacing:4px;color:#fff;}
+    .login-title span{color:#ff006e;}
+    .login-sub{font-family:'Exo 2',sans-serif;font-size:0.58rem;color:rgba(255,255,255,0.22);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
+    .login-card{
+      background:rgba(10,10,30,0.92);border:1px solid rgba(255,0,110,0.15);
+      border-radius:20px;overflow:hidden;backdrop-filter:blur(20px);
+      box-shadow:0 24px 70px rgba(0,0,0,.5);position:relative;
+    }
+    .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff006e,#7b2ff7);z-index:5;}
+    .login-form{padding:24px;}
+    .login-back{
+      display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
+      border:1px solid rgba(255,0,110,0.15);border-radius:8px;background:rgba(10,10,28,.7);
+      color:rgba(255,255,255,.35);font-family:'Exo 2',sans-serif;font-size:.6rem;
+      letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .3s;
+      text-decoration:none;display:block;text-align:center;margin-bottom:18px;
+    }
+    .login-back:hover{color:#ff006e;border-color:rgba(255,0,110,.35);}
+
+    /* ── SHARED FORM COMPONENTS ── */
+    .ig{margin-bottom:14px;}
+    .ig label{display:block;font-family:'Exo 2',sans-serif;font-size:.58rem;color:rgba(255,0,110,0.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+    .ig input,.ig select,.ig textarea{
+      width:100%;padding:12px 14px;background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,0,110,0.1);border-radius:9px;color:#fff;
+      font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:500;
+      outline:none;transition:all .3s;-webkit-appearance:none;appearance:none;
+    }
+    .ig input:focus,.ig select:focus,.ig textarea:focus{border-color:#ff006e;box-shadow:0 0 12px rgba(255,0,110,.1);}
+    .ig input::placeholder,.ig textarea::placeholder{color:rgba(255,255,255,.12);}
+    .ig select option{background:#0d0d28;color:#fff;}
+    .ig textarea{resize:vertical;min-height:80px;}
+    .ig-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    .btn-primary{
+      width:100%;padding:14px;border-radius:10px;border:1px solid rgba(255,0,110,0.3);
+      color:#ff006e;font-family:'Orbitron',monospace;font-size:.68rem;letter-spacing:2px;
+      cursor:pointer;transition:all .3s;text-transform:uppercase;
+      background:linear-gradient(135deg,rgba(255,0,110,0.1),rgba(123,47,247,0.07));
+    }
+    .btn-primary:hover{background:linear-gradient(135deg,rgba(255,0,110,0.2),rgba(123,47,247,0.12));border-color:#ff006e;box-shadow:0 0 20px rgba(255,0,110,.15);}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-primary:active{transform:scale(.98);}
+    .btn-secondary{
+      width:100%;padding:11px;border-radius:10px;border:1px solid rgba(123,47,247,0.25);
+      color:#b380ff;font-family:'Exo 2',sans-serif;font-size:.68rem;letter-spacing:1.5px;
+      cursor:pointer;transition:all .3s;text-transform:uppercase;
+      background:rgba(123,47,247,0.07);margin-top:8px;
+    }
+    .btn-secondary:hover{background:rgba(123,47,247,0.14);border-color:#7b2ff7;}
+    .btn-sm{
+      padding:6px 12px;border-radius:8px;font-family:'Exo 2',sans-serif;
+      font-size:.58rem;letter-spacing:1px;cursor:pointer;transition:all .2s;border:1px solid;
+    }
+    .btn-approve{color:#00ff88;border-color:rgba(0,255,136,.3);background:rgba(0,255,136,.07);}
+    .btn-approve:hover{background:rgba(0,255,136,.14);}
+    .btn-role{color:#b380ff;border-color:rgba(179,128,255,.3);background:rgba(179,128,255,.07);}
+    .btn-role:hover{background:rgba(179,128,255,.14);}
+    .btn-reject{color:#ff4d94;border-color:rgba(255,77,148,.3);background:rgba(255,77,148,.07);}
+    .btn-reject:hover{background:rgba(255,77,148,.14);}
+    .btn-danger{color:#ff4d94;border-color:rgba(255,77,148,.25);background:rgba(255,77,148,.07);}
+
+    .msg{padding:10px 13px;border-radius:8px;font-family:'Exo 2',sans-serif;font-size:.68rem;letter-spacing:.5px;margin-bottom:12px;display:none;line-height:1.5;}
+    .msg.error{background:rgba(255,0,110,.07);border:1px solid rgba(255,0,110,.18);color:#ff4d94;}
+    .msg.success{background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.18);color:#00ff88;}
+    .msg.info{background:rgba(0,240,255,.07);border:1px solid rgba(0,240,255,.18);color:#00f0ff;}
+    .msg.show{display:block;}
+    .spinner{display:inline-block;width:12px;height:12px;border:2px solid transparent;border-top-color:#ff006e;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px;}
+
+    /* ── MAIN ADMIN SHELL ── */
+    #adminShell{
+      position:fixed;inset:0;z-index:10;display:none;flex-direction:row;
+    }
+    #adminShell.visible{display:flex;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{
+      width:220px;height:100%;background:rgba(5,5,16,.97);
+      border-right:1px solid rgba(255,0,110,0.1);
+      display:flex;flex-direction:column;flex-shrink:0;
+      overflow:hidden;transition:width .3s ease;position:relative;z-index:20;
+    }
+    .sidebar.collapsed{width:60px;}
+    .sb-header{
+      padding:18px 16px 14px;border-bottom:1px solid rgba(255,0,110,0.08);
+      display:flex;align-items:center;gap:10px;flex-shrink:0;
+    }
+    .sb-logo-icon{width:32px;height:32px;border-radius:9px;background:rgba(255,0,110,.1);border:1px solid rgba(255,0,110,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .sb-logo-icon svg{width:16px;height:16px;fill:#ff006e;}
+    .sb-logo-text{min-width:0;flex:1;}
+    .sb-logo-name{font-family:'Orbitron',monospace;font-size:.75rem;font-weight:700;letter-spacing:2px;color:#fff;white-space:nowrap;}
+    .sb-logo-name span{color:#ff006e;}
+    .sb-logo-sub{font-family:'Exo 2',sans-serif;font-size:.5rem;color:rgba(255,0,110,0.4);letter-spacing:2px;text-transform:uppercase;margin-top:1px;}
+    .sb-toggle{
+      position:absolute;top:18px;right:-12px;width:24px;height:24px;border-radius:50%;
+      background:rgba(5,5,16,.97);border:1px solid rgba(255,0,110,.2);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:30;
+      transition:all .3s;
+    }
+    .sb-toggle:hover{border-color:rgba(255,0,110,.5);}
+    .sb-toggle svg{width:12px;height:12px;fill:rgba(255,0,110,.6);transition:transform .3s;}
+    .sidebar.collapsed .sb-toggle svg{transform:rotate(180deg);}
+
+    .sb-nav{flex:1;overflow-y:auto;padding:10px 0;}
+    .sb-section-label{
+      font-family:'Exo 2',sans-serif;font-size:.5rem;color:rgba(255,255,255,.18);
+      letter-spacing:2.5px;text-transform:uppercase;padding:8px 16px 4px;
+      white-space:nowrap;overflow:hidden;
+    }
+    .sidebar.collapsed .sb-section-label{opacity:0;}
+    .sb-nav-item{
+      display:flex;align-items:center;gap:10px;padding:10px 16px;
+      cursor:pointer;transition:all .25s;border:none;background:none;
+      width:100%;text-align:left;position:relative;
+    }
+    .sb-nav-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:#ff006e;border-radius:0 3px 3px 0;transition:width .25s;}
+    .sb-nav-item.active::before,.sb-nav-item:hover::before{width:3px;}
+    .sb-nav-item.active{background:rgba(255,0,110,.06);}
+    .sb-nav-item:hover:not(.active){background:rgba(255,0,110,.03);}
+    .sb-nav-icon{width:18px;height:18px;flex-shrink:0;}
+    .sb-nav-icon svg{width:18px;height:18px;fill:rgba(255,255,255,.25);transition:fill .25s;}
+    .sb-nav-item.active .sb-nav-icon svg,.sb-nav-item:hover .sb-nav-icon svg{fill:#ff006e;}
+    .sb-nav-label{font-family:'Exo 2',sans-serif;font-size:.68rem;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;transition:color .25s;}
+    .sb-nav-item.active .sb-nav-label,.sb-nav-item:hover .sb-nav-label{color:#ff006e;}
+    .sidebar.collapsed .sb-nav-label{opacity:0;width:0;}
+    .sb-badge{
+      margin-left:auto;min-width:18px;height:18px;border-radius:9px;
+      background:#ff006e;color:#fff;font-family:'Exo 2',sans-serif;
+      font-size:.5rem;font-weight:700;display:flex;align-items:center;justify-content:center;
+      padding:0 5px;flex-shrink:0;
+    }
+    .sidebar.collapsed .sb-badge{display:none;}
+
+    .sb-user{
+      padding:14px 16px;border-top:1px solid rgba(255,0,110,.08);
+      display:flex;align-items:center;gap:10px;flex-shrink:0;
+    }
+    .sb-avatar{
+      width:34px;height:34px;border-radius:10px;background:rgba(255,0,110,.1);
+      border:1.5px solid rgba(255,0,110,.25);display:flex;align-items:center;
+      justify-content:center;font-family:'Orbitron',monospace;font-size:.7rem;
+      color:#ff006e;flex-shrink:0;overflow:hidden;cursor:pointer;
+    }
+    .sb-user-info{flex:1;min-width:0;overflow:hidden;}
+    .sb-user-name{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .sb-user-role{font-family:'Exo 2',sans-serif;font-size:.52rem;color:rgba(255,0,110,.55);letter-spacing:1px;}
+    .sidebar.collapsed .sb-user-info{display:none;}
+
+    /* ── MAIN CONTENT AREA ── */
+    .admin-main{
+      flex:1;height:100%;overflow:hidden;display:flex;flex-direction:column;min-width:0;
+    }
+    .admin-topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 20px;background:rgba(5,5,16,.92);
+      border-bottom:1px solid rgba(255,0,110,.08);flex-shrink:0;
+      backdrop-filter:blur(12px);
+    }
+    .tb-left{display:flex;align-items:center;gap:12px;}
+    .tb-section-name{font-family:'Orbitron',monospace;font-size:.95rem;color:#fff;letter-spacing:2px;}
+    .tb-breadcrumb{font-family:'Exo 2',sans-serif;font-size:.58rem;color:rgba(255,255,255,.25);letter-spacing:1px;}
+    .tb-right{display:flex;align-items:center;gap:10px;}
+    .tb-notif{
+      position:relative;width:36px;height:36px;border-radius:10px;
+      border:1px solid rgba(255,0,110,.15);background:rgba(255,0,110,.06);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;
+    }
+    .tb-notif:hover{border-color:rgba(255,0,110,.35);}
+    .notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;background:#ff006e;border-radius:50%;border:1.5px solid var(--darker);display:none;}
+    .notif-dot.show{display:block;}
+    .tb-date{font-family:'Exo 2',sans-serif;font-size:.6rem;color:rgba(255,255,255,.25);letter-spacing:1px;}
+
+    .admin-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;-webkit-overflow-scrolling:touch;}
+
+    /* ── SECTIONS ── */
+    .admin-section{display:none;animation:fadeIn .3s ease;}
+    .admin-section.active{display:block;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    .section-header{margin-bottom:20px;}
+    .section-title{font-family:'Orbitron',monospace;font-size:1.1rem;color:#fff;letter-spacing:2px;margin-bottom:3px;}
+    .section-sub{font-family:'Exo 2',sans-serif;font-size:.63rem;color:rgba(255,255,255,.28);letter-spacing:1px;}
+
+    /* ── STAT GRID ── */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+    .stat-card{
+      background:rgba(10,10,30,.85);border:1px solid rgba(255,0,110,.08);
+      border-radius:16px;padding:16px 14px;position:relative;overflow:hidden;
+    }
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;}
+    .sc-red::before{background:linear-gradient(90deg,#ff006e,#ff4d94);}
+    .sc-cyan::before{background:linear-gradient(90deg,#00f0ff,#0080ff);}
+    .sc-green::before{background:linear-gradient(90deg,#00ff88,#00b055);}
+    .sc-amber::before{background:linear-gradient(90deg,#ffcc00,#ff8c00);}
+    .sc-purple::before{background:linear-gradient(90deg,#b380ff,#7b2ff7);}
+    .sc-pink::before{background:linear-gradient(90deg,#ff006e,#7b2ff7);}
+    .stat-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+    .stat-icon svg{width:16px;height:16px;}
+    .stat-val{font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:700;margin-bottom:2px;}
+    .stat-label{font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;}
+    .stat-delta{font-family:'Exo 2',sans-serif;font-size:.58rem;margin-top:4px;letter-spacing:.5px;}
+
+    /* ── CARD ── */
+    .card{background:rgba(10,10,30,.85);border:1px solid rgba(255,0,110,.08);border-radius:16px;padding:16px;margin-bottom:14px;backdrop-filter:blur(12px);}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .card-title{font-family:'Exo 2',sans-serif;font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:2px;text-transform:uppercase;}
+    .card-action{font-family:'Exo 2',sans-serif;font-size:.6rem;color:#ff006e;cursor:pointer;letter-spacing:1px;}
+    .card-action:hover{text-decoration:underline;}
+
+    /* ── GRID LAYOUTS ── */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+    @media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr;}}
+    @media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+    /* ── BADGES ── */
+    .badge{padding:3px 9px;border-radius:20px;font-family:'Exo 2',sans-serif;font-size:.52rem;letter-spacing:1px;text-transform:uppercase;font-weight:600;border:1px solid;white-space:nowrap;}
+    .badge-green{color:#00ff88;border-color:rgba(0,255,136,.25);background:rgba(0,255,136,.08);}
+    .badge-red{color:#ff4d94;border-color:rgba(255,77,148,.25);background:rgba(255,77,148,.08);}
+    .badge-yellow{color:#ffcc00;border-color:rgba(255,204,0,.25);background:rgba(255,204,0,.08);}
+    .badge-blue{color:#00f0ff;border-color:rgba(0,240,255,.25);background:rgba(0,240,255,.08);}
+    .badge-purple{color:#b380ff;border-color:rgba(179,128,255,.25);background:rgba(179,128,255,.08);}
+    .badge-pending{color:#ff8c00;border-color:rgba(255,140,0,.25);background:rgba(255,140,0,.08);}
+    .badge-admin{color:#ff006e;border-color:rgba(255,0,110,.25);background:rgba(255,0,110,.08);}
+
+    /* ── LIST ITEMS ── */
+    .list-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1px solid rgba(255,0,110,.06);background:rgba(255,0,110,.02);margin-bottom:8px;transition:all .25s;}
+    .list-item:last-child{margin-bottom:0;}
+    .list-item:hover{background:rgba(255,0,110,.05);}
+    .li-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .li-icon svg{width:18px;height:18px;}
+    .li-main{flex:1;min-width:0;}
+    .li-name{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .li-sub{font-family:'Exo 2',sans-serif;font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.5px;margin-top:2px;}
+    .li-right{font-family:'Exo 2',sans-serif;font-size:.65rem;color:rgba(255,255,255,.3);text-align:right;flex-shrink:0;}
+    .li-actions{display:flex;gap:6px;flex-shrink:0;}
+
+    /* ── TABLE ── */
+    .data-table{width:100%;border-collapse:collapse;}
+    .data-table th{font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,255,255,.25);letter-spacing:1.5px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,0,110,.08);}
+    .data-table td{padding:10px 12px;border-bottom:1px solid rgba(255,0,110,.04);font-family:'Rajdhani',sans-serif;font-size:.9rem;}
+    .data-table tr:last-child td{border-bottom:none;}
+    .data-table tr:hover td{background:rgba(255,0,110,.03);}
+    .table-wrap{overflow-x:auto;}
+
+    /* ── LOADING / EMPTY STATES ── */
+    .data-loader{display:flex;align-items:center;justify-content:center;padding:32px;gap:10px;}
+    .data-spin{width:22px;height:22px;border:2px solid rgba(255,0,110,.2);border-top-color:#ff006e;border-radius:50%;animation:spin .8s linear infinite;}
+    .data-loader span{font-family:'Exo 2',sans-serif;font-size:.65rem;color:rgba(255,255,255,.25);letter-spacing:2px;}
+    .empty-state{text-align:center;padding:32px 20px;}
+    .empty-icon svg{width:44px;height:44px;fill:rgba(255,255,255,.07);}
+    .empty-title{font-family:'Rajdhani',sans-serif;font-size:1rem;color:rgba(255,255,255,.28);margin:10px 0 4px;}
+    .empty-sub{font-family:'Exo 2',sans-serif;font-size:.63rem;color:rgba(255,255,255,.16);letter-spacing:.5px;}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.show{display:flex;}
+    .modal-box{
+      width:100%;max-width:460px;background:rgba(8,8,24,.98);
+      border:1px solid rgba(255,0,110,.2);border-radius:20px;padding:24px;
+      max-height:85vh;overflow-y:auto;animation:fadeIn .3s ease;
+    }
+    .modal-title{font-family:'Orbitron',monospace;font-size:.9rem;color:#fff;letter-spacing:2px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+    .modal-close{background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:1.3rem;line-height:1;}
+
+    /* ── ANNOUNCE ITEM ── */
+    .announce-item{padding:14px;border-radius:12px;border:1px solid rgba(255,0,110,.08);background:rgba(255,0,110,.03);margin-bottom:10px;}
+    .announce-tag{display:inline-block;padding:2px 8px;border-radius:8px;font-family:'Exo 2',sans-serif;font-size:.5rem;letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:6px;}
+    .announce-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;margin-bottom:4px;}
+    .announce-body{font-family:'Exo 2',sans-serif;font-size:.68rem;color:rgba(255,255,255,.45);line-height:1.6;}
+    .announce-meta{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+    .announce-time{font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,255,255,.22);letter-spacing:1px;}
+
+    /* ── AUDIT LOG LINE ── */
+    .audit-line{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,0,110,.05);}
+    .audit-line:last-child{border-bottom:none;}
+    .audit-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+    .audit-content{flex:1;min-width:0;}
+    .audit-action{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:600;}
+    .audit-detail{font-family:'Exo 2',sans-serif;font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.5px;margin-top:1px;}
+    .audit-time{font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,255,255,.2);flex-shrink:0;}
+
+    /* ── SUPPORT MSG ── */
+    .support-msg{border-radius:12px;border:1px solid rgba(255,0,110,.08);background:rgba(255,0,110,.03);margin-bottom:10px;overflow:hidden;}
+    .support-msg-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,0,110,.06);}
+    .support-msg-body{padding:12px 14px;}
+    .support-msg-topic{font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,0,110,.6);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;}
+    .support-msg-text{font-family:'Rajdhani',sans-serif;font-size:.9rem;color:rgba(255,255,255,.75);line-height:1.55;}
+    .support-unread{background:rgba(255,0,110,.05);}
+    .support-unread .support-msg-header{border-color:rgba(255,0,110,.12);}
+
+    /* ── CHART PLACEHOLDER ── */
+    .chart-wrap{position:relative;height:140px;display:flex;align-items:flex-end;gap:4px;padding-top:20px;}
+    .chart-bar{flex:1;border-radius:4px 4px 0 0;background:rgba(255,0,110,.15);border:1px solid rgba(255,0,110,.2);position:relative;transition:all .4s ease;min-height:4px;}
+    .chart-bar:hover{background:rgba(255,0,110,.3);}
+    .chart-bar-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:'Exo 2',sans-serif;font-size:.48rem;color:rgba(255,255,255,.25);letter-spacing:.5px;white-space:nowrap;}
+    .chart-bar-val{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:'Orbitron',monospace;font-size:.55rem;color:#ff006e;white-space:nowrap;}
+    .chart-labels{margin-top:22px;display:flex;justify-content:space-between;}
+
+    /* ── PROGRESS BAR ── */
+    .prog-bar-wrap{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:6px;}
+    .prog-bar-fill{height:100%;border-radius:3px;transition:width .8s ease;}
+
+    /* ── INFO ROW ── */
+    .info-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,0,110,.05);}
+    .info-row:last-child{border-bottom:none;}
+    .info-label{font-family:'Exo 2',sans-serif;font-size:.58rem;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;min-width:130px;flex-shrink:0;}
+    .info-val{font-family:'Rajdhani',sans-serif;font-size:.92rem;flex:1;}
+
+    /* ── CREDS BOX ── */
+    .creds-box{background:rgba(255,0,110,.05);border:1px solid rgba(255,0,110,.2);border-radius:12px;padding:14px;margin-bottom:14px;}
+    .creds-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .creds-row:last-child{margin-bottom:0;}
+    .creds-label{font-family:'Exo 2',sans-serif;font-size:.58rem;color:rgba(255,255,255,.3);letter-spacing:1.5px;text-transform:uppercase;}
+    .creds-val{font-family:'Orbitron',monospace;font-size:.75rem;color:#ff006e;letter-spacing:1px;}
+    .creds-copy{padding:3px 8px;border-radius:6px;border:1px solid rgba(255,0,110,.25);background:rgba(255,0,110,.07);color:#ff4d94;font-family:'Exo 2',sans-serif;font-size:.5rem;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+    .creds-copy:active{background:rgba(255,0,110,.18);}
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,0,110,.2);border-radius:4px;}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:768px){
+      .sidebar{width:60px;}
+      .sidebar .sb-nav-label,.sidebar .sb-logo-text,.sidebar .sb-user-info,.sidebar .sb-section-label,.sidebar .sb-badge{opacity:0;width:0;overflow:hidden;}
+      .stat-grid{grid-template-columns:1fr 1fr;}
+      .admin-topbar{padding:12px 14px;}
+      .admin-content{padding:14px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="ls-bg"><div class="ls-grid"></div><div class="ls-glow"></div></div>
+  <div class="ls-corner tl"></div><div class="ls-corner tr"></div>
+  <div class="ls-corner bl"></div><div class="ls-corner br"></div>
+  <div class="ls-content">
+    <div class="ls-hex">
+      <div class="ls-hex-ring"></div><div class="ls-hex-ring2"></div>
+      <div class="ls-hex-inner">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.3-2.33 6.48-5 7.93-2.67-1.45-5-4.63-5-7.93V7.18L12 5z"/></svg>
+      </div>
+    </div>
+    <div class="ls-title">NEXUS <span>ID</span></div>
+    <div class="ls-subtitle">Admin Control Panel</div>
+    <div class="ls-progress-wrap"><div class="ls-progress-bar" id="lsBar"></div></div>
+    <div class="ls-status" id="lsStatus">Initializing...</div>
+  </div>
+</div>
+
+<!-- LOGIN PAGE -->
+<div id="app">
+<div id="loginPage" style="display:none;">
+  <div class="bg"><div class="bg-grad"></div><div class="bg-grid"></div></div>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-icon-box">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.3-2.33 6.48-5 7.93-2.67-1.45-5-4.63-5-7.93V7.18L12 5z"/></svg>
+      </div>
+      <div class="login-title">NEXUS <span>ID</span></div>
+      <div class="login-sub">Administrator Portal</div>
+    </div>
+    <div class="login-card">
+      <div class="login-form">
+        <div class="msg" id="loginMsg"></div>
+        <div class="ig">
+          <label>Admin Username</label>
+          <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+        </div>
+        <div class="ig">
+          <label>Admin Password</label>
+          <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password"
+            onkeypress="if(event.key==='Enter') doAdminLogin()">
+        </div>
+        <button class="btn-primary" id="loginBtn" onclick="doAdminLogin()">Access Admin Panel</button>
+        <a href="index.html" class="login-back" style="margin-top:12px;">← Back to NEXUS ID Portal</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminShell">
+  <div class="bg"><div class="bg-grad"></div><div class="bg-grid"></div></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-toggle" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </div>
+    <div class="sb-header">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <div class="sb-logo-text">
+        <div class="sb-logo-name">NEXUS <span>ID</span></div>
+        <div class="sb-logo-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="sb-section-label">OVERVIEW</div>
+      <button class="sb-nav-item active" onclick="showSection('dashboard',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>
+        <span class="sb-nav-label">Dashboard</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('analytics',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg></div>
+        <span class="sb-nav-label">Analytics</span>
+      </button>
+
+      <div class="sb-section-label">MANAGEMENT</div>
+      <button class="sb-nav-item" onclick="showSection('users',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div>
+        <span class="sb-nav-label">Users</span>
+        <span class="sb-badge" id="pendingBadge" style="display:none;">0</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('attendance',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></div>
+        <span class="sb-nav-label">Attendance</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('grades',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg></div>
+        <span class="sb-nav-label">Grades</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('announcements',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg></div>
+        <span class="sb-nav-label">Announcements</span>
+      </button>
+
+      <div class="sb-section-label">SYSTEM</div>
+      <button class="sb-nav-item" onclick="showSection('support',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg></div>
+        <span class="sb-nav-label">Support</span>
+        <span class="sb-badge" id="supportBadge" style="display:none;">0</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('audit',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
+        <span class="sb-nav-label">Audit Log</span>
+      </button>
+      <button class="sb-nav-item" onclick="showSection('settings',this)">
+        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></div>
+        <span class="sb-nav-label">Settings</span>
+      </button>
+    </div>
+
+    <div class="sb-user">
+      <div class="sb-avatar" id="sbAvatar">A</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sbUserName">Administrator</div>
+        <div class="sb-user-role" id="sbUserRole">Admin</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="tb-left">
+        <div>
+          <div class="tb-section-name" id="tbSectionName">Dashboard</div>
+          <div class="tb-breadcrumb">NEXUS ID &rsaquo; <span id="tbBreadcrumb">Overview</span></div>
+        </div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-date" id="tbDate"></div>
+        <div class="tb-notif" onclick="toggleNotif()" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <div class="notif-dot" id="notifDot"></div>
+        </div>
+        <button onclick="doSignOut()" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,0,110,.2);background:rgba(255,0,110,.07);color:rgba(255,77,148,.8);font-family:'Exo 2',sans-serif;font-size:.6rem;letter-spacing:1.5px;cursor:pointer;transition:all .3s;" onmouseover="this.style.background='rgba(255,0,110,.14)'" onmouseout="this.style.background='rgba(255,0,110,.07)'">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="admin-section active" id="sec-dashboard">
+        <div class="section-header">
+          <div class="section-title">Overview</div>
+          <div class="section-sub">System-wide statistics and recent activity</div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card sc-cyan">
+            <div class="stat-icon" style="background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.18);"><svg viewBox="0 0 24 24" fill="#00f0ff"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg></div>
+            <div class="stat-val" id="d-students" style="color:#00f0ff;">—</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+          <div class="stat-card sc-green">
+            <div class="stat-icon" style="background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.18);"><svg viewBox="0 0 24 24" fill="#00ff88"><path d="M20 17.17L18.83 16H4V4h16v13.17z"/></svg></div>
+            <div class="stat-val" id="d-teachers" style="color:#00ff88;">—</div>
+            <div class="stat-label">Teachers</div>
+          </div>
+          <div class="stat-card sc-amber">
+            <div class="stat-icon" style="background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.18);"><svg viewBox="0 0 24 24" fill="#ffcc00"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3z"/></svg></div>
+            <div class="stat-val" id="d-parents" style="color:#ffcc00;">—</div>
+            <div class="stat-label">Parents</div>
+          </div>
+          <div class="stat-card sc-red">
+            <div class="stat-icon" style="background:rgba(255,0,110,.1);border:1px solid rgba(255,0,110,.18);"><svg viewBox="0 0 24 24" fill="#ff006e"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2z"/></svg></div>
+            <div class="stat-val" id="d-att-today" style="color:#ff006e;">—</div>
+            <div class="stat-label">Present Today</div>
+          </div>
+          <div class="stat-card sc-purple">
+            <div class="stat-icon" style="background:rgba(179,128,255,.1);border:1px solid rgba(179,128,255,.18);"><svg viewBox="0 0 24 24" fill="#b380ff"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+            <div class="stat-val" id="d-pending" style="color:#b380ff;">—</div>
+            <div class="stat-label">Pending Approval</div>
+          </div>
+          <div class="stat-card sc-pink">
+            <div class="stat-icon" style="background:rgba(255,0,110,.1);border:1px solid rgba(255,0,110,.18);"><svg viewBox="0 0 24 24" fill="#ff006e"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></div>
+            <div class="stat-val" id="d-support" style="color:#ff006e;">—</div>
+            <div class="stat-label">Support Messages</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Attendance — Last 7 Days</div>
+              <div class="card-action" onclick="showSection('attendance',document.querySelector('[onclick*=attendance]'))">View all</div>
+            </div>
+            <div class="chart-wrap" id="d-att-chart">
+              <div class="data-loader"><div class="data-spin"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Pending Approvals</div>
+              <div class="card-action" onclick="showSection('users',document.querySelector('[onclick*=users]'))">Manage</div>
+            </div>
+            <div id="d-pending-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+            <div class="card-action" onclick="showSection('audit',document.querySelector('[onclick*=audit]'))">Full log</div>
+          </div>
+          <div id="d-recent-activity"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ ANALYTICS ══ -->
+      <div class="admin-section" id="sec-analytics">
+        <div class="section-header">
+          <div class="section-title">Analytics</div>
+          <div class="section-sub">Grade distribution, attendance rates, and enrollment data</div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Grade Distribution</div></div>
+            <div id="an-grade-dist"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Enrollment by Grade Level</div></div>
+            <div id="an-enrollment"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Top Performing Students (by GPA)</div></div>
+          <div id="an-top-students"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ USERS ══ -->
+      <div class="admin-section" id="sec-users">
+        <div class="section-header">
+          <div class="section-title">User Management</div>
+          <div class="section-sub">Create accounts, approve users, assign roles</div>
+        </div>
+        
+        <!-- Create User Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Create New User Account</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="ig">
+              <label style="font-family:'Exo 2',sans-serif;font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:1px;display:block;margin-bottom:6px;">Full Name</label>
+              <input type="text" id="create-name" placeholder="Juan Dela Cruz" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(255,0,110,.15);background:rgba(10,10,30,.8);color:rgba(255,255,255,.8);font-family:'Rajdhani',sans-serif;outline:none;">
+            </div>
+            <div class="ig">
+              <label style="font-family:'Exo 2',sans-serif;font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:1px;display:block;margin-bottom:6px;">Email Address</label>
+              <input type="email" id="create-email" placeholder="user@school.com" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(255,0,110,.15);background:rgba(10,10,30,.8);color:rgba(255,255,255,.8);font-family:'Rajdhani',sans-serif;outline:none;">
+            </div>
+            <div class="ig">
+              <label style="font-family:'Exo 2',sans-serif;font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:1px;display:block;margin-bottom:6px;">User Role</label>
+              <select id="create-role" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(255,0,110,.15);background:rgba(10,10,30,.8);color:rgba(255,255,255,.8);font-family:'Rajdhani',sans-serif;outline:none;">
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="parent">Parent</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="ig">
+              <label style="font-family:'Exo 2',sans-serif;font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:1px;display:block;margin-bottom:6px;">Status</label>
+              <select id="create-status" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(255,0,110,.15);background:rgba(10,10,30,.8);color:rgba(255,255,255,.8);font-family:'Rajdhani',sans-serif;outline:none;">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+          </div>
+          <div id="create-msg" style="margin-top:12px;"></div>
+          <button class="btn-primary" id="create-btn" onclick="createUserDirect()" style="margin-top:12px;width:100%;">Create User Account</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Pending Approvals <span id="u-pend-count" class="badge badge-red" style="margin-left:6px;">0</span></div>
+          </div>
+          <div id="u-pending-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Users</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="u-filter-role" onchange="loadAllUsers()" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,0,110,.15);background:rgba(10,10,30,.8);color:rgba(255,255,255,.7);font-family:'Exo 2',sans-serif;font-size:.6rem;outline:none;">
+                <option value="">All Roles</option>
+                <option value="student">Students</option>
+                <option value="teacher">Teachers</option>
+                <option value="parent">Parents</option>
+                <option value="admin">Admins</option>
+              </select>
+            </div>
+          </div>
+          <div id="u-all-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ ATTENDANCE ══ -->
+      <div class="admin-section" id="sec-attendance">
+        <div class="section-header">
+          <div class="section-title">Attendance Records</div>
+          <div class="section-sub">All attendance submissions across all classes</div>
+        </div>
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card sc-cyan">
+            <div class="stat-val" id="att-today-total" style="color:#00f0ff;">—</div>
+            <div class="stat-label">Today's Submissions</div>
+          </div>
+          <div class="stat-card sc-green">
+            <div class="stat-val" id="att-week-total" style="color:#00ff88;">—</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-card sc-amber">
+            <div class="stat-val" id="att-codes-active" style="color:#ffcc00;">—</div>
+            <div class="stat-label">Active Codes</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Active Attendance Codes</div>
+            <div class="card-action" onclick="loadAttendanceCodes()">Refresh</div>
+          </div>
+          <div id="att-codes-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Submissions</div>
+          </div>
+          <div id="att-records-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ GRADES ══ -->
+      <div class="admin-section" id="sec-grades">
+        <div class="section-header">
+          <div class="section-title">Grade Records</div>
+          <div class="section-sub">All grades entered by teachers</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Filter Grades</div>
+          </div>
+          <div class="ig-grid">
+            <div class="ig">
+              <label>Grade Level</label>
+              <select id="gr-filter-grade" onchange="loadGradeRecords()">
+                <option value="">All Levels</option>
+              </select>
+            </div>
+            <div class="ig">
+              <label>Quarter</label>
+              <select id="gr-filter-quarter" onchange="loadGradeRecords()">
+                <option value="">All Quarters</option>
+                <option value="1">Quarter 1</option>
+                <option value="2">Quarter 2</option>
+                <option value="3">Quarter 3</option>
+                <option value="4">Quarter 4</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Grade Entries</div></div>
+          <div class="table-wrap" id="gr-records-wrap">
+            <div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ ANNOUNCEMENTS ══ -->
+      <div class="admin-section" id="sec-announcements">
+        <div class="section-header">
+          <div class="section-title">Announcements</div>
+          <div class="section-sub">Post and manage school-wide announcements</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">New Announcement</div></div>
+          <div class="msg" id="ann-msg"></div>
+          <div class="ig"><label>Title</label><input type="text" id="ann-title" placeholder="Announcement title"></div>
+          <div class="ig"><label>Content</label><textarea id="ann-content" placeholder="Detailed message..."></textarea></div>
+          <div class="ig-grid">
+            <div class="ig">
+              <label>Audience</label>
+              <select id="ann-audience">
+                <option value="all">All Users</option>
+                <option value="student">Students Only</option>
+                <option value="teacher">Teachers Only</option>
+                <option value="parent">Parents Only</option>
+              </select>
+            </div>
+            <div class="ig">
+              <label>Priority</label>
+              <select id="ann-priority">
+                <option value="normal">Normal</option>
+                <option value="urgent">Urgent</option>
+                <option value="info">Info</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary" id="ann-btn" onclick="postAnnouncement()">Post Announcement</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Posted Announcements</div>
+            <div class="card-action" onclick="loadAnnouncements()">Refresh</div>
+          </div>
+          <div id="ann-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ SUPPORT ══ -->
+      <div class="admin-section" id="sec-support">
+        <div class="section-header">
+          <div class="section-title">Support Messages</div>
+          <div class="section-sub">Incoming requests from students, teachers, and parents</div>
+        </div>
+        <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="stat-card sc-red">
+            <div class="stat-val" id="supp-unread-count" style="color:#ff006e;">—</div>
+            <div class="stat-label">Unread Messages</div>
+          </div>
+          <div class="stat-card sc-purple">
+            <div class="stat-val" id="supp-total-count" style="color:#b380ff;">—</div>
+            <div class="stat-label">Total Messages</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Inbox</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="markAllSupportRead()" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(255,0,110,.2);background:rgba(255,0,110,.07);color:rgba(255,77,148,.7);font-family:'Exo 2',sans-serif;font-size:.58rem;letter-spacing:1px;cursor:pointer;">Mark all read</button>
+              <div class="card-action" onclick="loadSupportMessages()" style="line-height:2;">Refresh</div>
+            </div>
+          </div>
+          <div id="supp-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ AUDIT LOG ══ -->
+      <div class="admin-section" id="sec-audit">
+        <div class="section-header">
+          <div class="section-title">Audit Log</div>
+          <div class="section-sub">All system actions and user events</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">System Events</div>
+            <div class="card-action" onclick="loadAuditLog()">Refresh</div>
+          </div>
+          <div id="audit-list"><div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div></div>
+        </div>
+      </div>
+
+      <!-- ══ SETTINGS ══ -->
+      <div class="admin-section" id="sec-settings">
+        <div class="section-header">
+          <div class="section-title">Settings</div>
+          <div class="section-sub">School configuration and admin credentials</div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">School Information</div></div>
+              <div class="msg" id="set-msg"></div>
+              <div class="ig"><label>School Name</label><input type="text" id="set-name" placeholder="e.g. NEXUS Academy"></div>
+              <div class="ig"><label>Address</label><input type="text" id="set-address" placeholder="Full school address"></div>
+              <div class="ig"><label>Contact Number</label><input type="text" id="set-contact" placeholder="(02) XXXX-XXXX"></div>
+              <div class="ig"><label>Email</label><input type="email" id="set-email" placeholder="school@example.com"></div>
+              <div class="ig"><label>Motto / Tagline</label><input type="text" id="set-motto" placeholder="School motto"></div>
+              <div class="ig">
+                <label>School Year</label>
+                <select id="set-sy"></select>
+              </div>
+              <button class="btn-primary" id="set-btn" onclick="saveSchoolSettings()">Save School Settings</button>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Admin Credentials</div></div>
+              <div class="creds-box">
+                <div style="font-family:'Exo 2',sans-serif;font-size:.55rem;color:rgba(255,0,110,.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">System Admin Login</div>
+                <div class="creds-row">
+                  <div><div class="creds-label">Email</div><div class="creds-val" id="set-admin-email" style="font-size:.65rem;"></div></div>
+                  <button class="creds-copy" id="copy-email-btn" onclick="copyAdminEmail()">Copy</button>
+                </div>
+                <div class="creds-row">
+                  <div><div class="creds-label">Password</div><div class="creds-val" id="set-admin-pass"></div></div>
+                  <button class="creds-copy" id="copy-pass-btn" onclick="copyAdminPass()">Copy</button>
+                </div>
+              </div>
+              <a href="index.html" style="display:block;text-align:center;padding:10px;border-radius:8px;border:1px solid rgba(255,0,110,.15);color:rgba(255,0,110,.5);font-family:'Exo 2',sans-serif;font-size:.62rem;letter-spacing:1.5px;text-decoration:none;transition:all .3s;margin-bottom:10px;" onmouseover="this.style.borderColor='rgba(255,0,110,.4)';this.style.color='#ff006e'" onmouseout="this.style.borderColor='rgba(255,0,110,.15)';this.style.color='rgba(255,0,110,.5)'">← Open Main Portal (index.html)</a>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Admin Account</div></div>
+              <div id="set-profile-info"><div class="data-loader"><div class="data-spin"></div></div></div>
+              <button class="btn-primary btn-danger" style="margin-top:10px;" onclick="doSignOut()">Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.admin-content -->
+  </div><!-- /.admin-main -->
+</div><!-- /#adminShell -->
+</div><!-- /#app -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- Load config.js first (Firebase, Supabase, helpers) -->
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   NEXUS ID — admin.html  (requires config.js)
+══════════════════════════════════════════════════════ */
+
+// ── Loading screen ───────────────────────────────────
+const steps = [
+  [0,'Initializing...'],
+  [25,'Loading Firebase...'],
+  [55,'Connecting Supabase...'],
+  [80,'Verifying admin session...'],
+  [100,'Ready!']
+];
+let si = 0;
+(function runLoader(){
+  if(si>=steps.length) return;
+  const [p,m]=steps[si++];
+  document.getElementById('lsBar').style.width=p+'%';
+  document.getElementById('lsStatus').textContent=m;
+  if(si<steps.length) setTimeout(runLoader, si===1?200:si===2?500:si===3?600:300);
+})();
+
+function hideLoader(){
+  document.getElementById('lsBar').style.width='100%';
+  document.getElementById('lsStatus').textContent='Ready!';
+  // Make app visible first
+  const app = document.getElementById('app');
+  if(app) app.classList.add('visible');
+  setTimeout(()=>{
+    const ls = document.getElementById('loadingScreen');
+    if(ls){
+      ls.classList.add('hide');
+      ls.style.opacity = '0';
+      ls.style.pointerEvents = 'none';
+    }
+    setTimeout(()=>{
+      const ls2 = document.getElementById('loadingScreen');
+      if(ls2) ls2.style.display='none';
+    },650);
+  },300);
+}
+
+// ── Firebase init (Realtime Database Only) ──────────
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// Initialize Firebase Realtime Database
+initializeFirebaseDatabase(firebase.app());
+
+// ── State ────────────────────────────────────────────
+let adminProfile = null;
+
+// ── Helper Functions ─────────────────────────────────
+function sanitize(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '—';
+  try {
+    const date = new Date(dateStr);
+    const seconds = (new Date() - date) / 1000;
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+    return date.toLocaleDateString();
+  } catch(e) {
+    return '—';
+  }
+}
+
+function truncate(str, max) {
+  str = String(str || '');
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+// ── Clock ────────────────────────────────────────────
+function updateClock(){
+  const now = new Date();
+  document.getElementById('tbDate').textContent =
+    now.toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'}) +
+    '  ' + now.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+}
+updateClock();
+setInterval(updateClock,30000);
+
+// ── Auth state ───────────────────────────────────────
+auth.onAuthStateChanged(async function(user){
+  if(user){
+    await verifyAdmin(user);
+  } else {
+    hideLoader();
+    showLoginPage();
+  }
+});
+
+async function verifyAdmin(user){
+  // Not used with local admin login
+  // Admin login is handled by doAdminLogin() function
+  return;
+}
+
+function showLoginPage(msg){
+  const app = document.getElementById('app');
+  if(app) app.classList.add('visible');
+  document.getElementById('loginPage').style.display='flex';
+  document.getElementById('adminShell').classList.remove('visible');
+  document.getElementById('adminShell').style.display='none';
+  if(msg) showMsg('loginMsg',msg,'error');
+  // Pre-fill username
+  const userEl = document.getElementById('loginUser');
+  if(userEl) userEl.value = 'admin';
+}
+
+function showAdminShell(profile){
+  const app = document.getElementById('app');
+  if(app) app.classList.add('visible');
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('adminShell').style.display='flex';
+  document.getElementById('adminShell').classList.add('visible');
+  // Populate sidebar user
+  const initials=(profile.full_name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sbAvatar').textContent=initials;
+  document.getElementById('sbUserName').textContent=profile.full_name||'Administrator';
+  document.getElementById('sbUserRole').textContent=getRoleLabel(profile.role);
+  // Creds in settings
+  document.getElementById('set-admin-email').textContent=ADMIN_EMAIL;
+  document.getElementById('set-admin-pass').textContent='Set in Firebase Console';
+  // School year options
+  const syEl=document.getElementById('set-sy');
+  SCHOOL_YEARS.forEach(y=>{
+    const o=document.createElement('option');
+    o.value=o.textContent=y;
+    syEl.appendChild(o);
+  });
+  // Grade filter in grades section
+  const grEl=document.getElementById('gr-filter-grade');
+  Object.values(GRADE_LEVELS).flat().forEach(g=>{
+    const o=document.createElement('option');
+    o.value=o.textContent=g;
+    grEl.appendChild(o);
+  });
+}
+
+// ── Admin Login ──────────────────────────────────────
+async function doAdminLogin(){
+  const user = (document.getElementById('loginUser')?.value || '').trim();
+  const pass = document.getElementById('loginPass')?.value || '';
+  
+  // Simple hardcoded admin credentials
+  const ADMIN_USER = 'admin';
+  const ADMIN_PASS = 'padua100A';
+  
+  if (!user || !pass) { 
+    showMsg('loginMsg', 'Enter username and password', 'error'); 
+    return; 
+  }
+  
+  setBtn('loginBtn', true, 'Authenticating...');
+  
+  // Simulate network delay
+  setTimeout(async () => {
+    if (user === ADMIN_USER && pass === ADMIN_PASS) {
+      // Login successful
+      adminProfile = {
+        firebase_uid: 'admin_local',
+        full_name: 'Administrator',
+        email: 'admin@nexusid.com',
+        role: 'admin',
+        status: 'active'
+      };
+      
+      hideLoader();
+      showAdminShell(adminProfile);
+      loadDashboard();
+      setBtn('loginBtn', false, 'Access Admin Panel');
+    } else {
+      showMsg('loginMsg', 'Invalid username or password', 'error');
+      setBtn('loginBtn', false, 'Access Admin Panel');
+    }
+  }, 600);
+}
+
+async function doAdminGoogleLogin(){
+  setBtn('adminGoogleBtn',true,'Signing in...');
+  try{
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch(err){
+    let msg='Google login failed.';
+    if(err.code==='auth/unauthorized-domain') msg='This domain is not authorized. Check Firebase Console.';
+    else if(err.code==='auth/popup-closed-by-user') msg='Login cancelled.';
+    showMsg('loginMsg',msg,'error');
+    setBtn('adminGoogleBtn',false,'Sign in with Google');
+  }
+}
+
+async function doSignOut(){
+  await auth.signOut();
+  adminProfile=null;
+  showLoginPage();
+}
+
+// ── Sidebar & section navigation ─────────────────────
+let sidebarCollapsed=false;
+function toggleSidebar(){
+  sidebarCollapsed=!sidebarCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sidebarCollapsed);
+}
+
+function showSection(id, btn){
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sb-nav-item').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('sec-'+id);
+  if(el) el.classList.add('active');
+  if(btn) btn.classList.add('active');
+  const labels={
+    dashboard:'Dashboard',analytics:'Analytics',users:'User Management',
+    attendance:'Attendance',grades:'Grades',announcements:'Announcements',
+    support:'Support',audit:'Audit Log',settings:'Settings'
+  };
+  document.getElementById('tbSectionName').textContent=labels[id]||id;
+  document.getElementById('tbBreadcrumb').textContent=labels[id]||id;
+  // Lazy-load
+  if(id==='analytics') loadAnalytics();
+  if(id==='users') { loadPendingUsers(); loadAllUsers(); }
+  if(id==='attendance') loadAttendanceSection();
+  if(id==='grades') loadGradeRecords();
+  if(id==='announcements') loadAnnouncements();
+  if(id==='support') loadSupportMessages();
+  if(id==='audit') loadAuditLog();
+  if(id==='settings') loadSchoolSettings();
+}
+
+// ── DASHBOARD ────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    // Get all profiles and count by role
+    const allProfiles = await getAllProfiles() || {};
+    const profiles = Object.values(allProfiles);
+    const studs = profiles.filter(p => p.role === 'student');
+    const tchs = profiles.filter(p => p.role === 'teacher');
+    const pars = profiles.filter(p => p.role === 'parent');
+    const pend = profiles.filter(p => p.status === 'pending');
+    
+    // Get announcements
+    const allAnnouncements = await getAllAnnouncements() || {};
+    const announcements = Object.values(allAnnouncements);
+    
+    // Get support messages
+    const allSupport = await getAllSupportMessages() || {};
+    const supp = Object.values(allSupport).filter(m => m.status === 'unread');
+    
+    // Update dashboard stats
+    const d_students = document.getElementById('d-students');
+    const d_teachers = document.getElementById('d-teachers');
+    const d_parents = document.getElementById('d-parents');
+    const d_pending = document.getElementById('d-pending');
+    const d_support = document.getElementById('d-support');
+    
+    if(d_students) d_students.textContent = studs.length || 0;
+    if(d_teachers) d_teachers.textContent = tchs.length || 0;
+    if(d_parents) d_parents.textContent = pars.length || 0;
+    if(d_pending) d_pending.textContent = pend.length || 0;
+    if(d_support) d_support.textContent = supp.length || 0;
+    
+    // Sidebar badges
+    const pb = document.getElementById('pendingBadge');
+    const plen = pend.length || 0;
+    if(pb) { 
+      pb.textContent = plen; 
+      pb.style.display = plen > 0 ? 'flex' : 'none'; 
+    }
+    
+    const sb2 = document.getElementById('supportBadge');
+    const slen = supp.length || 0;
+    if(sb2) { 
+      sb2.textContent = slen; 
+      sb2.style.display = slen > 0 ? 'flex' : 'none'; 
+    }
+    
+    // Notif dot
+    const notifDot = document.getElementById('notifDot');
+    if(notifDot && (plen + slen > 0)) {
+      notifDot.classList.add('show');
+    }
+  } catch(e){ console.warn('Dashboard stats error:', e); }
+
+  // Pending list (quick)
+  const pendEl=document.getElementById('d-pending-list');
+  try{
+    const allProfiles = await getAllProfiles(); const pendingProfiles = []; for (const uid in allProfiles) { if (allProfiles[uid].status === 'pending') pendingProfiles.push(allProfiles[uid]); } const data = pendingProfiles.slice(0, 4);
+    if(!data||!data.length){ pendEl.innerHTML='<div class="empty-state"><div class="empty-title">No pending approvals</div><div class="empty-sub">All accounts are approved</div></div>'; }
+    else pendEl.innerHTML=data.map(u=>`
+      <div class="list-item">
+        <div class="li-icon" style="background:rgba(255,204,0,.07);border:1px solid rgba(255,204,0,.12);">
+          <svg viewBox="0 0 24 24" fill="#ffcc00"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+        <div class="li-main">
+          <div class="li-name">${sanitize(u.full_name)}</div>
+          <div class="li-sub">${sanitize(u.role)} · ${sanitize(u.email)}</div>
+        </div>
+        <div class="li-actions">
+          <button class="btn-sm btn-approve" onclick="approveUser('${u.firebase_uid}',loadDashboard)">✓</button>
+          <button class="btn-sm btn-reject" onclick="rejectUser('${u.firebase_uid}',loadDashboard)">✕</button>
+        </div>
+      </div>`).join('');
+  } catch(e){ pendEl.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+
+  // Attendance chart (7 days)
+  const chartEl=document.getElementById('d-att-chart');
+  try{
+    const days=[];
+    for(let i=6;i>=0;i--){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+    const attSnapshot = await fbDb.ref('attendance_records').once('value'); const recs = attSnapshot.val() || {};
+    const counts={};
+    days.forEach(d=>counts[d]=0);
+    (recs||[]).forEach(r=>{ if(counts[r.attendance_date]!==undefined) counts[r.attendance_date]++; });
+    const max=Math.max(1,...Object.values(counts));
+    chartEl.innerHTML=days.map(d=>{
+      const pct=Math.round((counts[d]/max)*100);
+      const short=new Date(d).toLocaleDateString('en-PH',{weekday:'short'});
+      return `<div class="chart-bar" style="height:${Math.max(pct,3)}%;"><span class="chart-bar-val">${counts[d]}</span><span class="chart-bar-label">${short}</span></div>`;
+    }).join('');
+  } catch(e){ chartEl.innerHTML='<div class="empty-state"><div class="empty-title">No data</div></div>'; }
+
+  // Recent activity
+  const actEl=document.getElementById('d-recent-activity');
+  try{
+    const auditSnapshot = await fbDb.ref('audit_logs').once('value'); const data = auditSnapshot.val() || {};
+    if(!data||!data.length){ actEl.innerHTML='<div class="empty-state"><div class="empty-title">No activity yet</div></div>'; return; }
+    actEl.innerHTML=data.map(l=>renderAuditLine(l)).join('');
+  } catch(e){ actEl.innerHTML='<div class="empty-state"><div class="empty-title">Could not load activity</div></div>'; }
+}
+
+function renderAuditLine(l){
+  const colors={attendance_submitted:'#00f0ff',grade_encoded:'#00ff88',school_settings_updated:'#ffcc00',default:'#b380ff'};
+  const c=colors[l.action]||colors.default;
+  return `<div class="audit-line">
+    <div class="audit-dot" style="background:${c};box-shadow:0 0 6px ${c}44;"></div>
+    <div class="audit-content">
+      <div class="audit-action">${sanitize(l.action?.replace(/_/g,' ').toUpperCase())}</div>
+      <div class="audit-detail">${sanitize(l.user_name)} · ${sanitize(truncate(l.details||'',40))}</div>
+    </div>
+    <div class="audit-time">${timeAgo(l.created_at)}</div>
+  </div>`;
+}
+
+// ── ANALYTICS ────────────────────────────────────────
+async function loadAnalytics(){
+  // Grade distribution
+  const grEl=document.getElementById('an-grade-dist');
+  try{
+    const gradesSnapshot = await fbDb.ref('grades').once('value'); const data = gradesSnapshot.val() || {};
+    if(!data||!data.length){ grEl.innerHTML='<div class="empty-state"><div class="empty-title">No grade data</div></div>'; }
+    else{
+      const buckets={'90-100':0,'85-89':0,'80-84':0,'75-79':0,'<75':0};
+      data.forEach(g=>{
+        const v=parseFloat(g.grade);
+        if(v>=90) buckets['90-100']++;
+        else if(v>=85) buckets['85-89']++;
+        else if(v>=80) buckets['80-84']++;
+        else if(v>=75) buckets['75-79']++;
+        else buckets['<75']++;
+      });
+      const total=data.length||1;
+      const colors={'90-100':'#00ff88','85-89':'#00f0ff','80-84':'#b380ff','75-79':'#ffcc00','<75':'#ff4d94'};
+      grEl.innerHTML=Object.entries(buckets).map(([label,count])=>{
+        const pct=Math.round(count/total*100);
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-family:'Exo 2',sans-serif;font-size:.65rem;color:rgba(255,255,255,.5);">${label}</span>
+            <span style="font-family:'Orbitron',monospace;font-size:.65rem;color:${colors[label]};">${count} <span style="color:rgba(255,255,255,.25);font-size:.55rem;">(${pct}%)</span></span>
+          </div>
+          <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%;background:${colors[label]};"></div></div>
+        </div>`;
+      }).join('');
+    }
+  } catch(e){ grEl.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+
+  // Enrollment by grade level
+  const enEl=document.getElementById('an-enrollment');
+  try{
+    const students = await getProfilesByRole('student'); const data = students;
+    const counts={};
+    (data||[]).forEach(s=>{ if(s.grade_level){ counts[s.grade_level]=(counts[s.grade_level]||0)+1; } });
+    const total=data?.length||1;
+    if(!Object.keys(counts).length){ enEl.innerHTML='<div class="empty-state"><div class="empty-title">No enrollment data</div></div>'; }
+    else enEl.innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([gl,count])=>{
+      const pct=Math.round(count/total*100);
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-family:'Exo 2',sans-serif;font-size:.65rem;color:rgba(255,255,255,.5);">${sanitize(gl)}</span>
+          <span style="font-family:'Orbitron',monospace;font-size:.65rem;color:#00f0ff;">${count}</span>
+        </div>
+        <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%;background:#00f0ff;"></div></div>
+      </div>`;
+    }).join('');
+  } catch(e){ enEl.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+
+  // Top students
+  const topEl=document.getElementById('an-top-students');
+  try{
+    const gradesSnapshot = await fbDb.ref('grades').once('value'); const data = gradesSnapshot.val() || {};
+    if(!data||!data.length){ topEl.innerHTML='<div class="empty-state"><div class="empty-title">No grade data yet</div></div>'; return; }
+    // Group by student
+    const map={};
+    data.forEach(g=>{
+      if(!map[g.student_firebase_uid]) map[g.student_firebase_uid]={name:g.student_name,grades:[]};
+      map[g.student_firebase_uid].grades.push(parseFloat(g.grade));
+    });
+    const sorted=Object.entries(map)
+      .map(([uid,v])=>({uid,name:v.name,gpa:computeGPA(v.grades)}))
+      .sort((a,b)=>parseFloat(b.gpa)-parseFloat(a.gpa)).slice(0,8);
+    topEl.innerHTML='<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Student</th><th>GPA</th><th>Remarks</th></tr></thead><tbody>'+
+      sorted.map((s,i)=>`<tr>
+        <td style="color:rgba(255,255,255,.3);font-family:'Orbitron',monospace;font-size:.75rem;">${i+1}</td>
+        <td>${sanitize(s.name||'—')}</td>
+        <td style="font-family:'Orbitron',monospace;color:${getGradeColor(s.gpa)};">${s.gpa}</td>
+        <td><span class="badge ${parseFloat(s.gpa)>=75?'badge-green':'badge-red'}">${getGradeRemarks(s.gpa)}</span></td>
+      </tr>`).join('')+
+    '</tbody></table></div>';
+  } catch(e){ topEl.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+}
+
+// ── USER MANAGEMENT ──────────────────────────────────
+async function loadPendingUsers() {
+  const el = document.getElementById('u-pending-list');
+  if (!el) return;
+  
+  try {
+    const allProfiles = await getAllProfiles() || {};
+    const pending = [];
+    for (const uid in allProfiles) {
+      if (allProfiles[uid] && allProfiles[uid].status === 'pending') {
+        pending.push({ uid, ...allProfiles[uid] });
+      }
+    }
+    
+    if (!pending || pending.length === 0) {
+      el.innerHTML='<div class="empty-state"><div class="empty-title">No pending approvals</div><div class="empty-sub">All accounts are approved</div></div>';
+      return;
+    }
+    
+    el.innerHTML = pending.slice(0, 20).map(u=>`
+      <div class="list-item">
+        <div class="li-icon" style="background:rgba(255,204,0,0.07);border:1px solid rgba(255,204,0,0.12);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffcc00"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </div>
+        <div class="li-main">
+          <div class="li-name">${sanitize(u.full_name || 'User')}</div>
+          <div class="li-sub">${sanitize(u.email || '')} · ${sanitize(u.role || 'student')}</div>
+        </div>
+        <div class="li-actions">
+          <button class="btn-sm btn-approve" onclick="approveUser('${u.uid}',loadPendingUsers)">✓</button>
+          <button class="btn-sm btn-reject" onclick="rejectUser('${u.uid}',loadPendingUsers)">✕</button>
+        </div>
+      </div>`).join('');
+      
+    // Update pending count badge
+    const pendCount = document.getElementById('u-pend-count');
+    if(pendCount) pendCount.textContent = pending.length;
+    
+  } catch(e){ 
+    console.error('Error loading pending users:', e);
+    if(el) el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load pending users</div></div>'; 
+  }
+}
+
+// ── Create User Directly ────────────────────────────
+async function createUserDirect(){
+  const name = (document.getElementById('create-name')?.value || '').trim();
+  const email = (document.getElementById('create-email')?.value || '').trim();
+  const role = document.getElementById('create-role')?.value || 'student';
+  const status = document.getElementById('create-status')?.value || 'active';
+  const msgEl = document.getElementById('create-msg');
+  
+  if (!name || !email) {
+    msgEl.innerHTML = '<div class="msg-error" style="color:#ff4d94;font-size:0.75rem;">Fill in all fields</div>';
+    return;
+  }
+  
+  if (!email.includes('@')) {
+    msgEl.innerHTML = '<div class="msg-error" style="color:#ff4d94;font-size:0.75rem;">Invalid email format</div>';
+    return;
+  }
+  
+  setBtn('create-btn', true, 'Creating account...');
+  msgEl.innerHTML = '';
+  
+  try {
+    // Generate a unique UID
+    const uid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Create profile in Firebase Realtime Database
+    const profileData = {
+      firebase_uid: uid,
+      full_name: name,
+      email: email,
+      role: role,
+      status: status,
+      created_at: new Date().toISOString(),
+      created_by_admin: adminProfile?.full_name || 'Administrator'
+    };
+    
+    // Save to Firebase
+    await fbDb.ref('profiles/' + uid).set(profileData);
+    
+    // Success message
+    msgEl.innerHTML = '<div class="msg-success" style="color:#00ff88;font-size:0.75rem;">✓ User account created successfully!</div>';
+    
+    // Clear form
+    document.getElementById('create-name').value = '';
+    document.getElementById('create-email').value = '';
+    document.getElementById('create-role').value = 'student';
+    document.getElementById('create-status').value = 'active';
+    
+    // Refresh user lists
+    setTimeout(() => {
+      loadPendingUsers();
+      loadAllUsers();
+      msgEl.innerHTML = '';
+    }, 1500);
+    
+  } catch(e) {
+    msgEl.innerHTML = '<div class="msg-error" style="color:#ff4d94;font-size:0.75rem;">Error: ' + e.message + '</div>';
+    console.error('Error creating user:', e);
+  }
+  
+  setBtn('create-btn', false, 'Create User Account');
+}
+
+async function loadAllUsers(){
+  const el=document.getElementById('u-all-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  const roleFilter=document.getElementById('u-filter-role')?.value||'';
+  try{
+    const allProfiles = await getAllProfiles(); const q = Object.values(allProfiles).slice(0, 50);
+    if(roleFilter) q=q.eq('role',roleFilter);
+    const {data}=await q;
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No users found</div></div>'; return; }
+    el.innerHTML='<div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody>'+
+      data.map(u=>`<tr>
+        <td style="font-weight:600;">${sanitize(u.full_name)}</td>
+        <td style="color:rgba(255,255,255,.5);font-size:.82rem;">${sanitize(u.email)}</td>
+        <td><span class="badge" style="color:${getRoleColor(u.role)};border-color:${getRoleColor(u.role)}44;background:${getRoleColor(u.role)}11;">${getRoleLabel(u.role)}</span></td>
+        <td><span class="badge ${u.status==='active'?'badge-green':u.status==='pending'?'badge-pending':'badge-red'}">${sanitize(u.status)||'pending'}</span></td>
+        <td style="color:rgba(255,255,255,.35);font-size:.82rem;">${formatDate(u.created_at)}</td>
+      </tr>`).join('')+
+    '</tbody></table></div>';
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load users</div></div>'; }
+}
+
+async function approveUser(uid, cb){
+  try{
+    await updateUserProfile(uid, {status:'active'});
+    await pushNotification(uid, 'Account Approved','Your account has been approved. Welcome to NEXUS ID!','success');
+    if(cb) cb();
+  } catch(e){ showModal('Error','<p style="color:#ff4d94;font-family:Exo 2,sans-serif;font-size:.8rem;">Could not approve user.</p>'); }
+}
+async function rejectUser(uid, cb){
+  try{
+    await updateUserProfile(uid, {status:'rejected'});
+    if(cb) cb();
+  } catch(e){}
+}
+
+function openRoleModal(uid){
+  showModal('Assign Role',`
+    <div class="ig"><label>Select Role</label>
+      <select id="modal-role">
+        ${['student','teacher','id_maker','vice_principal','principal','admin','parent'].map(r=>`<option value="${r}">${getRoleLabel(r)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="ig" id="tc-ig" style="display:none;"><label>Teacher Code (leave blank to auto-generate)</label>
+      <input type="text" id="modal-tc" placeholder="e.g. TCH001" style="letter-spacing:2px;text-transform:uppercase;">
+    </div>
+    <div class="msg" id="modal-msg"></div>
+    <button class="btn-primary" onclick="assignRole('${uid}')">Assign Role & Approve</button>
+  `);
+  document.getElementById('modal-role').addEventListener('change',function(){
+    document.getElementById('tc-ig').style.display=this.value==='teacher'?'':'none';
+  });
+}
+
+async function assignRole(uid){
+  const role=document.getElementById('modal-role').value;
+  let tc=(document.getElementById('modal-tc')?.value||'').trim().toUpperCase();
+  if(role==='teacher'&&!tc) tc='TCH'+Math.floor(100+Math.random()*900);
+  try{
+    const upd={role,status:'active'};
+    if(role==='teacher') upd.teacher_code=tc;
+    await updateUserProfile(uid, upd);
+    await pushNotification(uid,'Role Updated',`Your role has been set to ${getRoleLabel(role)}.`,'info');
+    showMsg('modal-msg','Role assigned!','success');
+    await logAudit(adminProfile?.firebase_uid,'Admin','role_assigned',`${uid} → ${role}`);
+    loadPendingUsers(); loadAllUsers(); loadDashboard();
+  } catch(e){ showMsg('modal-msg','Error: '+e.message,'error'); }
+}
+
+// ── ATTENDANCE ───────────────────────────────────────
+async function loadAttendanceSection(){
+  try{
+    const [{data:attT},{data:attW},{data:codes}] = await Promise.all([
+      // Firebase attendance data
+    ]);
+    document.getElementById('att-today-total').textContent=attT?.length||0;
+    document.getElementById('att-week-total').textContent=attW?.length||0;
+    document.getElementById('att-codes-active').textContent=codes?.length||0;
+  } catch(e){}
+  loadAttendanceCodes();
+  loadAttendanceRecords();
+}
+
+async function loadAttendanceCodes(){
+  const el=document.getElementById('att-codes-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  try{
+    const codesSnapshot = await fbDb.ref('attendance_codes').once('value'); const data = codesSnapshot.val() || {};
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No codes generated yet</div></div>'; return; }
+    el.innerHTML='<div class="table-wrap"><table class="data-table"><thead><tr><th>Code</th><th>Teacher</th><th>Subject</th><th>Grade</th><th>Expires</th><th>Status</th></tr></thead><tbody>'+
+      data.map(r=>{
+        const exp=new Date(r.expires_at)<new Date()||!r.active;
+        return `<tr>
+          <td style="font-family:'Orbitron',monospace;letter-spacing:3px;color:${exp?'rgba(255,255,255,.3)':'#00ff88'};">${sanitize(r.code)}</td>
+          <td>${sanitize(r.teacher_name||'—')}</td>
+          <td>${sanitize(r.subject||'—')}</td>
+          <td>${sanitize(r.grade_level||'—')}</td>
+          <td style="font-size:.82rem;color:rgba(255,255,255,.4);">${formatDate(r.expires_at)}</td>
+          <td><span class="badge ${exp?'badge-red':'badge-green'}">${exp?'Expired':'Active'}</span></td>
+        </tr>`;}).join('')+'</tbody></table></div>';
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+}
+
+async function loadAttendanceRecords(){
+  const el=document.getElementById('att-records-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  try{
+    const attSnapshot = await fbDb.ref('attendance_records').once('value'); const data = attSnapshot.val() || {};
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No attendance records yet</div></div>'; return; }
+    el.innerHTML='<div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>Subject</th><th>Teacher</th><th>Date</th><th>Time</th><th>Grade</th></tr></thead><tbody>'+
+      data.map(r=>`<tr>
+        <td style="font-weight:600;">${sanitize(r.student_name||'—')}</td>
+        <td>${sanitize(r.subject||'—')}</td>
+        <td>${sanitize(r.teacher_name||'—')}</td>
+        <td style="color:rgba(255,255,255,.45);font-size:.82rem;">${formatDate(r.attendance_date)}</td>
+        <td style="color:rgba(255,255,255,.45);font-size:.82rem;">${formatTime(r.attendance_time)}</td>
+        <td style="color:rgba(255,255,255,.35);font-size:.82rem;">${sanitize(r.grade_level||'—')} ${sanitize(r.section||'')}</td>
+      </tr>`).join('')+'</tbody></table></div>';
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load records</div></div>'; }
+}
+
+// ── GRADES ───────────────────────────────────────────
+async function loadGradeRecords(){
+  const el=document.getElementById('gr-records-wrap');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  const gl=document.getElementById('gr-filter-grade')?.value||'';
+  const qt=document.getElementById('gr-filter-quarter')?.value||'';
+  try{
+    const gradesSnapshot = await fbDb.ref('grades').once('value'); const q = Object.values(gradesSnapshot.val() || {}).slice(0, 50);
+    if(gl) q=q.eq('grade_level',gl);
+    if(qt) q=q.eq('quarter',parseInt(qt));
+    const {data}=await q;
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No grades found</div></div>'; return; }
+    el.innerHTML='<table class="data-table"><thead><tr><th>Student</th><th>Subject</th><th>Q</th><th>Grade</th><th>Remarks</th><th>Teacher</th><th>Updated</th></tr></thead><tbody>'+
+      data.map(r=>`<tr>
+        <td style="font-weight:600;">${sanitize(r.student_name||'—')}</td>
+        <td>${sanitize(r.subject||'—')}</td>
+        <td style="color:rgba(255,255,255,.4);font-family:'Orbitron',monospace;font-size:.75rem;">${r.quarter||'—'}</td>
+        <td style="font-family:'Orbitron',monospace;font-size:.95rem;color:${getGradeColor(r.grade)};">${parseFloat(r.grade||0).toFixed(2)}</td>
+        <td><span class="badge ${parseFloat(r.grade)>=75?'badge-green':'badge-red'}" style="font-size:.48rem;">${getGradeRemarks(r.grade)}</span></td>
+        <td style="color:rgba(255,255,255,.35);font-size:.82rem;">${sanitize(r.teacher_name||'—')}</td>
+        <td style="color:rgba(255,255,255,.25);font-size:.78rem;">${timeAgo(r.updated_at)}</td>
+      </tr>`).join('')+'</tbody></table>';
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load grades</div></div>'; }
+}
+
+// ── ANNOUNCEMENTS ────────────────────────────────────
+async function postAnnouncement(){
+  const title=(document.getElementById('ann-title').value||'').trim();
+  const content=(document.getElementById('ann-content').value||'').trim();
+  const aud=document.getElementById('ann-audience').value;
+  const prio=document.getElementById('ann-priority').value;
+  if(!title||!content){ showMsg('ann-msg','Fill in title and content','error'); return; }
+  setBtn('ann-btn',true,'Posting...');
+  try{
+    await saveAnnouncement({title, content, author_id: adminProfile?.firebase_uid, author_name: adminProfile?.full_name || 'Admin', audience: aud, priority: prio});
+    
+    // Send notifications to all users
+    try {
+      const allProfiles = await getAllProfiles() || {};
+      const allUsers = Object.keys(allProfiles);
+      
+      for (const uid of allUsers) {
+        try {
+          await pushNotification(uid, title, content, prio === 'high' ? 'alert' : 'info');
+        } catch(e) {
+          console.warn('Failed to notify user ' + uid, e);
+        }
+      }
+    } catch(e) {
+      console.warn('Error sending notifications:', e);
+    }
+    
+    showMsg('ann-msg','Announcement posted and notifications sent!','success');
+    document.getElementById('ann-title').value='';
+    document.getElementById('ann-content').value='';
+    await logAudit(adminProfile?.firebase_uid, adminProfile?.full_name||'Admin','announcement_posted',title);
+    loadAnnouncements();
+  } catch(e){ showMsg('ann-msg','Error posting: '+e.message,'error'); }
+  setBtn('ann-btn',false,'Post Announcement');
+}
+
+async function loadAnnouncements(){
+  const el=document.getElementById('ann-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  try{
+    const data = await getAllAnnouncements();
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No announcements posted yet</div></div>'; return; }
+    el.innerHTML=data.map(a=>{
+      const c=a.priority==='urgent'?'#ff4d94':a.priority==='info'?'#00f0ff':'#b380ff';
+      return `<div class="announce-item">
+        <span class="announce-tag" style="color:${c};background:${c}11;border:1px solid ${c}33;">${sanitize(a.priority)}</span>
+        <div class="announce-title">${sanitize(a.title)}</div>
+        <div class="announce-body">${sanitize(a.content)}</div>
+        <div class="announce-meta">
+          <div class="announce-time">Audience: ${sanitize(a.audience)} · By ${sanitize(a.author_name)} · ${timeAgo(a.created_at)}</div>
+          <button onclick="deleteAnnouncement('${a.id}')" style="padding:2px 8px;border-radius:6px;border:1px solid rgba(255,77,148,.2);background:rgba(255,77,148,.06);color:#ff4d94;font-family:'Exo 2',sans-serif;font-size:.5rem;cursor:pointer;">Delete</button>
+        </div>
+      </div>`;}).join('');
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load</div></div>'; }
+}
+
+async function deleteAnnouncement(id){
+  if(!confirm('Delete this announcement?')) return;
+  try{ await fbDb.ref('announcements/' + id).remove(); loadAnnouncements(); } catch(e){}
+}
+
+// ── SUPPORT MESSAGES ─────────────────────────────────
+async function loadSupportMessages(){
+  const el=document.getElementById('supp-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  try{
+    const data = await getAllSupportMessages();
+    const unread=(data||[]).filter(m=>m.status==='unread').length;
+    document.getElementById('supp-unread-count').textContent=unread;
+    document.getElementById('supp-total-count').textContent=data?.length||0;
+    const sb2=document.getElementById('supportBadge');
+    if(unread>0){ sb2.textContent=unread; sb2.style.display='flex'; } else sb2.style.display='none';
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No support messages yet</div></div>'; return; }
+    el.innerHTML=data.map(m=>`
+      <div class="support-msg ${m.status==='unread'?'support-unread':''}">
+        <div class="support-msg-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="li-icon" style="background:rgba(123,47,247,.07);border:1px solid rgba(123,47,247,.12);width:30px;height:30px;">
+              <svg viewBox="0 0 24 24" fill="#b380ff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div>
+              <div style="font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:600;">${sanitize(m.sender_name)}</div>
+              <div style="font-family:'Exo 2',sans-serif;font-size:.58rem;color:rgba(255,255,255,.3);">${sanitize(m.sender_email||'—')} · ${sanitize(m.sender_role||'guest')}</div>
+            </div>
+          </div>
+          <div style="text-align:right;display:flex;align-items:center;gap:8px;">
+            <span class="badge ${m.status==='unread'?'badge-red':'badge-purple'}">${m.status}</span>
+            <div style="font-family:'Exo 2',sans-serif;font-size:.52rem;color:rgba(255,255,255,.2);">${timeAgo(m.created_at)}</div>
+            ${m.status==='unread'?`<button class="btn-sm" style="color:rgba(255,255,255,.3);border-color:rgba(255,255,255,.1);background:transparent;" onclick="markSupportRead('${m.id}',this)">Mark read</button>`:''}
+          </div>
+        </div>
+        <div class="support-msg-body">
+          <div class="support-msg-topic">${sanitize(m.topic||'General')}</div>
+          <div class="support-msg-text">${sanitize(m.message)}</div>
+        </div>
+      </div>`).join('');
+  } catch(e){
+    if(el) el.innerHTML='<div class="empty-state"><div class="empty-title">Run SQL schema to enable</div><div class="empty-sub">Add support_messages table in Supabase SQL editor</div></div>';
+  }
+}
+
+async function markSupportRead(id, btn){
+  try{
+    await fbDb.ref('support_messages/' + id).update({status: 'read'});
+    if(btn){ btn.closest('.support-msg')?.classList.remove('support-unread'); btn.remove(); }
+    loadSupportMessages();
+  } catch(e){}
+}
+
+async function markAllSupportRead(){
+  try{ const allMsgs = await getAllSupportMessages(); for(const id in allMsgs) { await fbDb.ref('support_messages/' + id).update({status: 'read'}); } loadSupportMessages(); } catch(e){}
+}
+
+// ── AUDIT LOG ────────────────────────────────────────
+async function loadAuditLog(){
+  const el=document.getElementById('audit-list');
+  el.innerHTML='<div class="data-loader"><div class="data-spin"></div><span>Loading...</span></div>';
+  try{
+    const auditSnapshot = await fbDb.ref('audit_logs').once('value'); const data = auditSnapshot.val() || {};
+    if(!data||!data.length){ el.innerHTML='<div class="empty-state"><div class="empty-title">No audit logs yet</div></div>'; return; }
+    el.innerHTML='<div class="table-wrap"><table class="data-table"><thead><tr><th>Action</th><th>User</th><th>Details</th><th>Time</th></tr></thead><tbody>'+
+      data.map(l=>`<tr>
+        <td style="font-family:'Orbitron',monospace;font-size:.75rem;color:#b380ff;">${sanitize((l.action||'').replace(/_/g,' ').toUpperCase())}</td>
+        <td style="font-weight:600;">${sanitize(l.user_name||'—')}</td>
+        <td style="color:rgba(255,255,255,.4);font-size:.82rem;">${sanitize(truncate(l.details||'',50))}</td>
+        <td style="color:rgba(255,255,255,.25);font-size:.78rem;white-space:nowrap;">${timeAgo(l.created_at)}</td>
+      </tr>`).join('')+'</tbody></table></div>';
+  } catch(e){ el.innerHTML='<div class="empty-state"><div class="empty-title">Could not load audit log</div></div>'; }
+}
+
+// ── SETTINGS ─────────────────────────────────────────
+async function loadSchoolSettings(){
+  // Profile
+  const profEl=document.getElementById('set-profile-info');
+  if(adminProfile){
+    profEl.innerHTML=`
+      <div class="info-row"><span class="info-label">Name</span><span class="info-val">${sanitize(adminProfile.full_name)}</span></div>
+      <div class="info-row"><span class="info-label">Email</span><span class="info-val">${sanitize(adminProfile.email)}</span></div>
+      <div class="info-row"><span class="info-label">Role</span><span class="info-val"><span class="badge badge-admin">${getRoleLabel(adminProfile.role)}</span></span></div>
+      <div class="info-row"><span class="info-label">Status</span><span class="info-val"><span class="badge badge-green">${sanitize(adminProfile.status)}</span></span></div>`;
+  }
+  try{
+    const settingsSnapshot = await fbDb.ref('school_settings').once('value'); const data = settingsSnapshot.val() || {};
+    if(data){
+      document.getElementById('set-name').value=data.school_name||'';
+      document.getElementById('set-address').value=data.school_address||'';
+      document.getElementById('set-contact').value=data.school_contact||'';
+      document.getElementById('set-email').value=data.school_email||'';
+      document.getElementById('set-motto').value=data.school_motto||'';
+      document.getElementById('set-sy').value=data.school_year||'2025-2026';
+    }
+  } catch(e){}
+}
+
+async function saveSchoolSettings(){
+  setBtn('set-btn',true,'Saving...');
+  try{
+    await fbDb.ref('school_settings').update({
+      school_name:    document.getElementById('set-name').value,
+      school_address: document.getElementById('set-address').value,
+      school_contact: document.getElementById('set-contact').value,
+      school_email:   document.getElementById('set-email').value,
+      school_motto:   document.getElementById('set-motto').value,
+      school_year:    document.getElementById('set-sy').value,
+      updated_at:     new Date().toISOString()
+    });
+    showMsg('set-msg','Settings saved!','success');
+    await logAudit(adminProfile?.firebase_uid, adminProfile?.full_name||'Admin','school_settings_updated','School info updated');
+  } catch(e){ showMsg('set-msg','Error: '+e.message,'error'); }
+  setBtn('set-btn',false,'Save School Settings');
+}
+
+function copyAdminEmail(){
+  copyText(ADMIN_EMAIL, document.getElementById('copy-email-btn'));
+}
+function copyAdminPass(){
+  // Password is not stored in client-side code for security
+  const btn = document.getElementById('copy-pass-btn');
+  if(btn) {
+    btn.textContent = 'Not Available';
+    btn.style.color = '#ff4d94';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  }
+}
+
+// ── NOTIFICATIONS PANEL ──────────────────────────────
+function toggleNotif(){
+  // Simple: reload dashboard which refreshes counts
+  loadDashboard();
+}
+
+// ── UTILITIES ────────────────────────────────────────
+function weekAgoISO(){
+  const d=new Date(); d.setDate(d.getDate()-7);
+  return d.toISOString().split('T')[0];
+}
+
+function showMsg(id,text,type){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.textContent=text;
+  el.className='msg '+type+' show';
+  setTimeout(()=>{ if(el.classList.contains('show')) el.classList.remove('show'); },5000);
+}
+
+function setBtn(id,loading,text){
+  const b=document.getElementById(id);
+  if(!b) return;
+  if(loading){ b.innerHTML=`<span class="spinner"></span>${text}`; b.disabled=true; }
+  else{ b.textContent=text; b.disabled=false; }
+}
+
+function showModal(title,html){
+  document.getElementById('modalContent').innerHTML=`<div class="modal-title">${sanitize(title)}<button class="modal-close" onclick="closeModal()">×</button></div>${html}`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(e){
+  if(!e||e.target===document.getElementById('modalOverlay')){
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+}
+</script>
+</body>
+</html>
